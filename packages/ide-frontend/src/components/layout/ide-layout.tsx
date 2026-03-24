@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { workspaceClient } from '@/lib/workspace-client';
-import { useTheme } from '@/lib/theme';
 import { FileExplorer } from '@/components/file-explorer/file-explorer';
 import { EditorTabs } from '@/components/editor/editor-tabs';
 import { TerminalPanel } from '@/components/terminal/terminal-panel';
@@ -12,44 +11,34 @@ import { AIActivity } from '@/components/ai-cursor/ai-activity';
 import { SettingsPanel } from '@/components/settings/settings-panel';
 import { ErrorsPanel } from '@/components/errors/errors-panel';
 
-interface Props {
-  onNewProject: () => void;
-}
+interface Props { onNewProject: () => void }
 
 type RightPanel = 'none' | 'preview' | 'activity' | 'settings';
-type BottomPanel = 'terminal' | 'errors';
+type BottomTab = 'terminal' | 'errors';
 
 export function IDELayout({ onNewProject }: Props) {
-  const { c, theme } = useTheme();
   const [ready, setReady] = useState(false);
   const [rightPanel, setRightPanel] = useState<RightPanel>('none');
-  const [bottomPanel, setBottomPanel] = useState<BottomPanel>('terminal');
-  const [bottomVisible, setBottomVisible] = useState(true);
-  const [sidebarWidth, setSidebarWidth] = useState(250);
-  const [rightPanelWidth, setRightPanelWidth] = useState(360);
-  const [bottomHeight, setBottomHeight] = useState(220);
-  const [resizing, setResizing] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [bottomTab, setBottomTab] = useState<BottomTab>('terminal');
+  const [bottomOpen, setBottomOpen] = useState(true);
+  const [sideW, setSideW] = useState(250);
+  const [rightW, setRightW] = useState(360);
+  const [bottomH, setBottomH] = useState(220);
+  const bodyRef = useRef<HTMLElement | null>(null);
 
-  useEffect(() => {
-    workspaceClient.init().then(() => setReady(true));
-  }, []);
+  useEffect(() => { workspaceClient.init().then(() => setReady(true)); }, []);
+  useEffect(() => { bodyRef.current = document.body; }, []);
 
-  // Resize helpers
-  const startResize = useCallback(
-    (axis: 'sidebar' | 'bottom' | 'right', startPos: number, startSize: number) => {
-      setResizing(true);
+  const startDrag = useCallback(
+    (axis: 'x' | 'y', startPos: number, startSize: number, setter: (v: number) => void, min: number, max: number, invert = false) => {
+      const cls = axis === 'x' ? 'resizing' : 'resizing-v';
+      bodyRef.current?.classList.add(cls);
       const onMove = (e: MouseEvent) => {
-        if (axis === 'sidebar') {
-          setSidebarWidth(Math.max(180, Math.min(500, startSize + e.clientX - startPos)));
-        } else if (axis === 'bottom') {
-          setBottomHeight(Math.max(120, Math.min(600, startSize - (e.clientY - startPos))));
-        } else {
-          setRightPanelWidth(Math.max(260, Math.min(600, startSize - (e.clientX - startPos))));
-        }
+        const delta = axis === 'x' ? e.clientX - startPos : e.clientY - startPos;
+        setter(Math.max(min, Math.min(max, startSize + (invert ? -delta : delta))));
       };
       const onUp = () => {
-        setResizing(false);
+        bodyRef.current?.classList.remove(cls);
         document.removeEventListener('mousemove', onMove);
         document.removeEventListener('mouseup', onUp);
       };
@@ -59,91 +48,72 @@ export function IDELayout({ onNewProject }: Props) {
     []
   );
 
-  const toggleRight = (panel: RightPanel) => {
-    setRightPanel((prev) => (prev === panel ? 'none' : panel));
-  };
+  const toggleRight = (p: RightPanel) => setRightPanel((v) => v === p ? 'none' : p);
 
   if (!ready) {
     return (
-      <div className="flex h-screen items-center justify-center" style={{ background: c.bgPrimary }}>
+      <div className="flex h-screen items-center justify-center bg-ide-bg">
         <div className="text-center">
-          <div className="mb-3 inline-block h-6 w-6 animate-spin rounded-full border-2 border-current border-t-transparent" style={{ color: c.accent }} />
-          <p className="text-sm" style={{ color: c.textSecondary }}>Initializing workspace...</p>
+          <div className="mx-auto mb-3 h-6 w-6 animate-spin rounded-full border-2 border-ide-accent border-t-transparent" />
+          <p className="text-sm text-ide-text-secondary">Initializing workspace...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div ref={containerRef} className={`flex h-screen flex-col ${resizing ? 'resizing' : ''}`} style={{ background: c.bgPrimary }}>
+    <div className="flex h-screen flex-col bg-ide-bg">
+
       {/* ── Title Bar ── */}
-      <div className="flex h-10 flex-shrink-0 items-center justify-between border-b px-3" style={{ background: c.bgSecondary, borderColor: c.border }}>
+      <header className="flex h-10 shrink-0 items-center justify-between border-b border-ide-border bg-ide-sidebar px-3">
         <div className="flex items-center gap-3">
-          <span className="text-sm font-semibold" style={{ color: c.textPrimary }}>
-            LLM-IDE
-          </span>
-          <span className="text-xs" style={{ color: c.textMuted }}>
-            {workspaceClient.getState().projectName || 'Untitled'}
-          </span>
+          <span className="text-sm font-bold text-ide-text">LLM-IDE</span>
+          <span className="text-xs text-ide-text-muted">{workspaceClient.getState().projectName || 'Untitled'}</span>
         </div>
-
         <div className="flex items-center gap-1">
-          <TitleBarBtn label="New" onClick={onNewProject} c={c} />
-          <TitleBarBtn label="Terminal" active={bottomVisible && bottomPanel === 'terminal'} onClick={() => { setBottomVisible(true); setBottomPanel('terminal'); }} c={c} />
-          <TitleBarBtn label="Problems" active={bottomVisible && bottomPanel === 'errors'} onClick={() => { setBottomVisible(true); setBottomPanel('errors'); }} c={c} />
-          <div className="mx-1 h-4 w-px" style={{ background: c.border }} />
-          <TitleBarBtn label="Preview" active={rightPanel === 'preview'} onClick={() => toggleRight('preview')} c={c} />
-          <TitleBarBtn label="AI Activity" active={rightPanel === 'activity'} onClick={() => toggleRight('activity')} c={c} />
-          <TitleBarBtn label="Settings" active={rightPanel === 'settings'} onClick={() => toggleRight('settings')} c={c} />
+          <Btn label="New" onClick={onNewProject} />
+          <Btn label="Terminal" active={bottomOpen && bottomTab === 'terminal'} onClick={() => { setBottomOpen(true); setBottomTab('terminal'); }} />
+          <Btn label="Problems" active={bottomOpen && bottomTab === 'errors'} onClick={() => { setBottomOpen(true); setBottomTab('errors'); }} />
+          <div className="mx-1.5 h-4 w-px bg-ide-border" />
+          <Btn label="Preview" active={rightPanel === 'preview'} onClick={() => toggleRight('preview')} />
+          <Btn label="AI Activity" active={rightPanel === 'activity'} onClick={() => toggleRight('activity')} />
+          <Btn label="Settings" active={rightPanel === 'settings'} onClick={() => toggleRight('settings')} />
         </div>
-      </div>
+      </header>
 
-      {/* ── Main Area ── */}
+      {/* ── Main ── */}
       <div className="flex min-h-0 flex-1">
+
         {/* Sidebar */}
-        <div className="flex-shrink-0 overflow-hidden" style={{ width: sidebarWidth, background: c.sidebarBg, borderRight: `1px solid ${c.border}` }}>
+        <aside className="shrink-0 overflow-hidden border-r border-ide-border bg-ide-sidebar" style={{ width: sideW }}>
           <FileExplorer />
-        </div>
+        </aside>
+        <div className="resize-h" onMouseDown={(e) => startDrag('x', e.clientX, sideW, setSideW, 180, 500)} />
 
-        {/* Sidebar resize */}
-        <div
-          className="resize-handle-h"
-          onMouseDown={(e) => startResize('sidebar', e.clientX, sidebarWidth)}
-        />
-
-        {/* Center: Editor + Bottom */}
+        {/* Center */}
         <div className="flex min-w-0 flex-1 flex-col">
           {/* Editor */}
-          <div className="min-h-0 flex-1 overflow-hidden" style={{ background: c.editorBg }}>
+          <div className="min-h-0 flex-1 overflow-hidden bg-ide-editor">
             <EditorTabs />
           </div>
 
-          {/* Bottom resize */}
-          {bottomVisible && (
+          {/* Bottom panel */}
+          {bottomOpen && (
             <>
-              <div
-                className="resize-handle-v"
-                onMouseDown={(e) => startResize('bottom', e.clientY, bottomHeight)}
-              />
-              {/* Bottom panel */}
-              <div className="flex-shrink-0 overflow-hidden" style={{ height: bottomHeight, borderTop: `1px solid ${c.border}` }}>
-                <div className="flex h-full flex-col" style={{ background: c.terminalBg }}>
-                  {/* Bottom panel tabs */}
-                  <div className="flex h-8 flex-shrink-0 items-center gap-0.5 border-b px-2" style={{ borderColor: c.border }}>
-                    <BottomTab label="Terminal" active={bottomPanel === 'terminal'} onClick={() => setBottomPanel('terminal')} c={c} />
-                    <BottomTab label="Problems" active={bottomPanel === 'errors'} onClick={() => setBottomPanel('errors')} c={c} />
+              <div className="resize-v" onMouseDown={(e) => startDrag('y', e.clientY, bottomH, setBottomH, 120, 500, true)} />
+              <div className="shrink-0 overflow-hidden border-t border-ide-border" style={{ height: bottomH }}>
+                <div className="flex h-full flex-col bg-ide-terminal">
+                  {/* Tabs */}
+                  <div className="flex h-8 shrink-0 items-center gap-0.5 border-b border-ide-border px-2">
+                    <BotTab label="Terminal" active={bottomTab === 'terminal'} onClick={() => setBottomTab('terminal')} />
+                    <BotTab label="Problems" active={bottomTab === 'errors'} onClick={() => setBottomTab('errors')} />
                     <div className="flex-1" />
-                    <button
-                      onClick={() => setBottomVisible(false)}
-                      className="flex h-5 w-5 items-center justify-center rounded text-xs"
-                      style={{ color: c.textSecondary }}
-                    >
+                    <button onClick={() => setBottomOpen(false)} className="flex h-5 w-5 items-center justify-center rounded text-xs text-ide-text-secondary hover:text-ide-text">
                       ×
                     </button>
                   </div>
-                  {/* Panel content */}
                   <div className="min-h-0 flex-1">
-                    {bottomPanel === 'terminal' ? <TerminalPanel /> : <ErrorsPanel />}
+                    {bottomTab === 'terminal' ? <TerminalPanel /> : <ErrorsPanel />}
                   </div>
                 </div>
               </div>
@@ -154,15 +124,12 @@ export function IDELayout({ onNewProject }: Props) {
         {/* Right panel */}
         {rightPanel !== 'none' && (
           <>
-            <div
-              className="resize-handle-h"
-              onMouseDown={(e) => startResize('right', e.clientX, rightPanelWidth)}
-            />
-            <div className="panel-enter flex-shrink-0 overflow-hidden" style={{ width: rightPanelWidth, borderLeft: `1px solid ${c.border}` }}>
+            <div className="resize-h" onMouseDown={(e) => startDrag('x', e.clientX, rightW, setRightW, 260, 600, true)} />
+            <aside className="shrink-0 overflow-hidden border-l border-ide-border" style={{ width: rightW }}>
               {rightPanel === 'preview' && <PreviewPanel />}
               {rightPanel === 'activity' && <AIActivity />}
               {rightPanel === 'settings' && <SettingsPanel onClose={() => setRightPanel('none')} />}
-            </div>
+            </aside>
           </>
         )}
       </div>
@@ -173,32 +140,26 @@ export function IDELayout({ onNewProject }: Props) {
   );
 }
 
-function TitleBarBtn({ label, active, onClick, c }: { label: string; active?: boolean; onClick: () => void; c: ReturnType<typeof useTheme>['c'] }) {
+function Btn({ label, active, onClick }: { label: string; active?: boolean; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="rounded px-2 py-1 text-xs font-medium transition-colors"
-      style={{
-        background: active ? c.accent : 'transparent',
-        color: active ? '#fff' : c.textSecondary,
-      }}
-      onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = c.hoverBg; }}
-      onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = 'transparent'; }}
+      className={`rounded px-2 py-1 text-xs font-medium transition-colors ${
+        active ? 'bg-ide-accent text-white' : 'text-ide-text-secondary hover:bg-ide-hover hover:text-ide-text'
+      }`}
     >
       {label}
     </button>
   );
 }
 
-function BottomTab({ label, active, onClick, c }: { label: string; active: boolean; onClick: () => void; c: ReturnType<typeof useTheme>['c'] }) {
+function BotTab({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="rounded px-2 py-0.5 text-[11px] font-medium transition-colors"
-      style={{
-        background: active ? c.bgPrimary : 'transparent',
-        color: active ? c.textPrimary : c.textSecondary,
-      }}
+      className={`rounded px-2 py-0.5 text-[11px] font-medium transition-colors ${
+        active ? 'bg-ide-bg text-ide-text' : 'text-ide-text-secondary hover:text-ide-text'
+      }`}
     >
       {label}
     </button>

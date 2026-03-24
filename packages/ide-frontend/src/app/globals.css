@@ -1,81 +1,174 @@
 @import "tailwindcss";
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+@theme {
+  /* Base palette — overridden by [data-theme] */
+  --color-ide-bg: #1e1e1e;
+  --color-ide-sidebar: #252526;
+  --color-ide-panel: #252526;
+  --color-ide-editor: #1e1e1e;
+  --color-ide-terminal: #1e1e1e;
+  --color-ide-border: #3e3e42;
+  --color-ide-hover: #2a2d2e;
+  --color-ide-selected: #094771;
+  --color-ide-input: #3c3c3c;
+
+  --color-ide-text: #cccccc;
+  --color-ide-text-secondary: #969696;
+  --color-ide-text-muted: #6e7681;
+
+  --color-ide-accent: #007acc;
+  --color-ide-accent-hover: #1a8ad4;
+  --color-ide-accent-muted: #264f78;
+
+  --color-ide-success: #4ec9b0;
+  --color-ide-warning: #cca700;
+  --color-ide-error: #f44747;
+  --color-ide-info: #75beff;
+
+  --color-ide-tab-active: #1e1e1e;
+  --color-ide-tab-inactive: #2d2d2d;
+  --color-ide-statusbar: #007acc;
+  --color-ide-statusbar-text: #ffffff;
 }
 
-html, body {
-  height: 100%;
-  background: var(--bg-primary, #1e1e1e);
-  color: var(--text-primary, #cccccc);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  overflow: hidden;
-  -webkit-font-smoothing: antialiased;
+/* ── Theme: Dracula ── */
+[data-theme="dracula"] {
+  --color-ide-bg: #282a36;
+  --color-ide-sidebar: #21222c;
+  --color-ide-panel: #21222c;
+  --color-ide-editor: #282a36;
+  --color-ide-terminal: #282a36;
+  --color-ide-border: #44475a;
+  --color-ide-hover: #343746;
+  --color-ide-selected: #44475a;
+  --color-ide-input: #44475a;
+  --color-ide-text: #f8f8f2;
+  --color-ide-text-secondary: #bfbfbf;
+  --color-ide-text-muted: #6272a4;
+  --color-ide-accent: #bd93f9;
+  --color-ide-accent-hover: #caa8fc;
+  --color-ide-accent-muted: #44475a;
+  --color-ide-success: #50fa7b;
+  --color-ide-warning: #f1fa8c;
+  --color-ide-error: #ff5555;
+  --color-ide-info: #8be9fd;
+  --color-ide-tab-active: #282a36;
+  --color-ide-tab-inactive: #21222c;
+  --color-ide-statusbar: #bd93f9;
+  --color-ide-statusbar-text: #282a36;
 }
 
-/* Scrollbar */
+/* ── Theme: One Dark Pro ── */
+[data-theme="one-dark"] {
+  --color-ide-bg: #282c34;
+  --color-ide-sidebar: #21252b;
+  --color-ide-panel: #21252b;
+  --color-ide-editor: #282c34;
+  --color-ide-terminal: #282c34;
+  --color-ide-border: #3e4451;
+  --color-ide-hover: #2c313a;
+  --color-ide-selected: #3e4451;
+  --color-ide-input: #3a3f4b;
+  --color-ide-text: #abb2bf;
+  --color-ide-text-secondary: #848b98;
+  --color-ide-text-muted: #5c6370;
+  --color-ide-accent: #528bff;
+  --color-ide-accent-hover: #6b9cff;
+  --color-ide-accent-muted: #3a3f4b;
+  --color-ide-success: #98c379;
+  --color-ide-warning: #e5c07b;
+  --color-ide-error: #e06c75;
+  --color-ide-info: #61afef;
+  --color-ide-tab-active: #282c34;
+  --color-ide-tab-inactive: #21252b;
+  --color-ide-statusbar: #528bff;
+  --color-ide-statusbar-text: #ffffff;
+}
+
+/* ── Theme: GitHub Dark ── */
+[data-theme="github-dark"] {
+  --color-ide-bg: #0d1117;
+  --color-ide-sidebar: #161b22;
+  --color-ide-panel: #161b22;
+  --color-ide-editor: #0d1117;
+  --color-ide-terminal: #0d1117;
+  --color-ide-border: #30363d;
+  --color-ide-hover: #1c2128;
+  --color-ide-selected: #1f6feb33;
+  --color-ide-input: #21262d;
+  --color-ide-text: #c9d1d9;
+  --color-ide-text-secondary: #8b949e;
+  --color-ide-text-muted: #484f58;
+  --color-ide-accent: #58a6ff;
+  --color-ide-accent-hover: #79c0ff;
+  --color-ide-accent-muted: #1f6feb33;
+  --color-ide-success: #3fb950;
+  --color-ide-warning: #d29922;
+  --color-ide-error: #f85149;
+  --color-ide-info: #58a6ff;
+  --color-ide-tab-active: #0d1117;
+  --color-ide-tab-inactive: #161b22;
+  --color-ide-statusbar: #58a6ff;
+  --color-ide-statusbar-text: #ffffff;
+}
+
+/* ── Theme: Light ── */
+[data-theme="light"] {
+  --color-ide-bg: #ffffff;
+  --color-ide-sidebar: #f3f3f3;
+  --color-ide-panel: #f3f3f3;
+  --color-ide-editor: #ffffff;
+  --color-ide-terminal: #ffffff;
+  --color-ide-border: #d4d4d4;
+  --color-ide-hover: #e8e8e8;
+  --color-ide-selected: #cce4f7;
+  --color-ide-input: #ffffff;
+  --color-ide-text: #1e1e1e;
+  --color-ide-text-secondary: #616161;
+  --color-ide-text-muted: #a0a0a0;
+  --color-ide-accent: #0078d4;
+  --color-ide-accent-hover: #106ebe;
+  --color-ide-accent-muted: #cce4f7;
+  --color-ide-success: #16825d;
+  --color-ide-warning: #bf8803;
+  --color-ide-error: #cd3131;
+  --color-ide-info: #0078d4;
+  --color-ide-tab-active: #ffffff;
+  --color-ide-tab-inactive: #ececec;
+  --color-ide-statusbar: #0078d4;
+  --color-ide-statusbar-text: #ffffff;
+}
+
+/* ── Base ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; -webkit-font-smoothing: antialiased; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  background-color: var(--color-ide-bg);
+  color: var(--color-ide-text);
+}
+
+/* ── Scrollbar ── */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #4244; border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: #5555; }
+::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--color-ide-text) 20%, transparent); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--color-ide-text) 30%, transparent); }
 ::-webkit-scrollbar-corner { background: transparent; }
 
-/* Resize handles */
-.resize-handle-h, .resize-handle-v {
-  background: transparent;
-  transition: background 0.15s ease;
-  position: relative;
-  z-index: 10;
-  flex-shrink: 0;
-}
-.resize-handle-h { width: 4px; cursor: col-resize; }
-.resize-handle-v { height: 4px; cursor: row-resize; }
-.resize-handle-h:hover, .resize-handle-v:hover,
-.resize-handle-h:active, .resize-handle-v:active {
-  background: var(--accent-blue, #007acc);
-}
+/* ── Resize handles ── */
+.resize-h { width: 4px; cursor: col-resize; flex-shrink: 0; transition: background 0.12s; }
+.resize-v { height: 4px; cursor: row-resize; flex-shrink: 0; transition: background 0.12s; }
+.resize-h:hover, .resize-v:hover { background: var(--color-ide-accent); }
+body.resizing { cursor: col-resize; }
+body.resizing-v { cursor: row-resize; }
+body.resizing *, body.resizing-v * { user-select: none !important; pointer-events: none !important; }
+body.resizing .resize-h, body.resizing-v .resize-v { pointer-events: auto !important; }
 
-/* Monaco overrides */
+/* ── Monaco ── */
 .monaco-editor { position: absolute !important; }
-.monaco-editor .overflow-guard { border-radius: 0 !important; }
 
-/* AI cursor */
-@keyframes cursor-blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
-@keyframes cursor-pulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.15); opacity: 0.7; }
-}
-.ai-cursor-bar { animation: cursor-blink 800ms ease-in-out infinite; }
-.ai-cursor-active { animation: cursor-pulse 1.5s ease-in-out infinite; }
-
-/* Panel transitions */
-.panel-enter { animation: panelSlideIn 0.15s ease-out; }
-@keyframes panelSlideIn {
-  from { opacity: 0; transform: translateX(8px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-
-/* Focus outlines */
-button:focus-visible, input:focus-visible, select:focus-visible {
-  outline: 1px solid var(--accent-blue, #007acc);
-  outline-offset: -1px;
-}
-
-/* File icon colors */
-.icon-ts { color: #3178c6; }
-.icon-js { color: #f7df1e; }
-.icon-json { color: #cb8622; }
-.icon-css { color: #1572b6; }
-.icon-html { color: #e34c26; }
-.icon-md { color: #519aba; }
-.icon-svg { color: #ffb13b; }
-.icon-default { color: #858585; }
-
-/* Drag prevention during resize */
-.resizing * { user-select: none !important; pointer-events: none !important; }
-.resizing .resize-handle-h, .resizing .resize-handle-v { pointer-events: auto !important; }
+/* ── AI cursor animation ── */
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+@keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
+.ai-blink { animation: blink 800ms ease-in-out infinite; }
+.ai-pulse { animation: pulse 1.5s ease-in-out infinite; }

@@ -3,13 +3,13 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'LLM-IDE — Cloud IDE for AI',
-  description: 'A cloud-based IDE built for the Node.js ecosystem. Connect any AI coding tool via MCP.',
+  description: 'Cloud-based IDE for Node.js. Connect any AI coding tool via MCP.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body className="h-screen overflow-hidden bg-ide-bg text-ide-text">{children}</body>
     </html>
   );
 }

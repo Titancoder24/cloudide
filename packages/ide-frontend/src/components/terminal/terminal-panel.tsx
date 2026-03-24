@@ -3,191 +3,76 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { workspaceClient } from '@/lib/workspace-client';
 import { useWorkspace } from '@/hooks/useWorkspace';
-import { useTheme } from '@/lib/theme';
 
 export function TerminalPanel() {
   const { terminalHistory } = useWorkspace();
-  const { c } = useTheme();
   const [input, setInput] = useState('');
-  const [cmdHistory, setCmdHistory] = useState<string[]>([]);
-  const [historyIdx, setHistoryIdx] = useState(-1);
-  const termRef = useRef<HTMLDivElement>(null);
+  const [history, setHistory] = useState<string[]>([]);
+  const [hIdx, setHIdx] = useState(-1);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (termRef.current) {
-      termRef.current.scrollTop = termRef.current.scrollHeight;
-    }
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [terminalHistory]);
 
-  const execCommand = useCallback((cmd: string) => {
-    const trimmed = cmd.trim();
-    if (!trimmed) return;
+  const exec = useCallback((cmd: string) => {
+    const t = cmd.trim();
+    if (!t) return;
+    setHistory((p) => [...p, t]);
+    setHIdx(-1);
+    workspaceClient.addTerminalEntry({ type: 'input', text: `$ ${t}`, timestamp: Date.now() });
 
-    setCmdHistory((prev) => [...prev, trimmed]);
-    setHistoryIdx(-1);
+    const [c, ...a] = t.split(/\s+/);
+    let out = '', tp: 'output' | 'error' | 'system' = 'output';
 
-    workspaceClient.addTerminalEntry({ type: 'input', text: `$ ${trimmed}`, timestamp: Date.now() });
-
-    const [command, ...args] = trimmed.split(/\s+/);
-    let output = '';
-    let type: 'output' | 'error' | 'system' = 'output';
-
-    switch (command) {
-      case 'help':
-        output = [
-          'Available commands:',
-          '  help          — Show this help',
-          '  clear         — Clear terminal',
-          '  ls            — List files',
-          '  cat <file>    — Display file contents',
-          '  echo <text>   — Print text',
-          '  pwd           — Print working directory',
-          '  date          — Show current date',
-          '  node -v       — Show Node.js version',
-          '  npm install   — Install dependencies',
-          '  npm run <s>   — Run script',
-          '  touch <file>  — Create empty file',
-          '  rm <file>     — Delete file',
-          '  export        — Export workspace',
-        ].join('\n');
-        break;
-      case 'clear':
-        workspaceClient.clearTerminal();
-        return;
-      case 'ls': {
-        const allFiles = workspaceClient.getAllFilePaths();
-        const dir = args[0] || '';
-        const filtered = dir ? allFiles.filter((f) => f.startsWith(dir)) : allFiles;
-        output = filtered.length > 0 ? filtered.join('\n') : '(empty)';
-        break;
-      }
-      case 'cat': {
-        if (!args[0]) { output = 'Usage: cat <filename>'; type = 'error'; break; }
-        workspaceClient.readFile(args[0]).then((content) => {
-          workspaceClient.addTerminalEntry({
-            type: content ? 'output' : 'error',
-            text: content || `cat: ${args[0]}: No such file`,
-            timestamp: Date.now(),
-          });
-        });
-        return;
-      }
-      case 'echo':
-        output = args.join(' ');
-        break;
-      case 'pwd':
-        output = `/workspace/${workspaceClient.getState().projectName || ''}`;
-        break;
-      case 'date':
-        output = new Date().toString();
-        break;
-      case 'node':
-        output = args[0] === '-v' ? 'v22.22.0 (NodePod)' : 'Usage: node -v';
-        break;
-      case 'npm': {
-        const sub = args[0];
-        if (sub === 'install' || sub === 'i') {
-          output = 'npm install simulated — packages would be installed via NodePod runtime.';
-          type = 'system';
-        } else if (sub === 'run') {
-          output = args[1] ? `Running script "${args[1]}"...` : 'Usage: npm run <script>';
-          type = 'system';
-        } else {
-          output = `npm ${sub || ''} — simulated in IDE environment`;
-          type = 'system';
-        }
-        break;
-      }
-      case 'touch':
-        if (args[0]) {
-          workspaceClient.createFile(args[0], '');
-          output = `Created ${args[0]}`;
-          type = 'system';
-        } else {
-          output = 'Usage: touch <filename>';
-          type = 'error';
-        }
-        break;
-      case 'rm':
-        if (args[0]) {
-          workspaceClient.deleteFile(args[0]);
-          output = `Deleted ${args[0]}`;
-          type = 'system';
-        } else {
-          output = 'Usage: rm <filename>';
-          type = 'error';
-        }
-        break;
-      case 'export':
-        output = JSON.stringify(workspaceClient.exportWorkspace(), null, 2);
-        break;
-      default:
-        output = `command not found: ${command}\nType "help" for available commands.`;
-        type = 'error';
+    switch (c) {
+      case 'help': out = 'Commands: help, clear, ls, cat, echo, pwd, date, node -v, npm install/run, touch, rm, export'; break;
+      case 'clear': workspaceClient.clearTerminal(); setInput(''); return;
+      case 'ls': { const f = workspaceClient.getAllFilePaths(); const d = a[0]||''; out = (d ? f.filter(x=>x.startsWith(d)) : f).join('\n') || '(empty)'; break; }
+      case 'cat': if(!a[0]){out='Usage: cat <file>';tp='error';break;} workspaceClient.readFile(a[0]).then(x=>workspaceClient.addTerminalEntry({type:x?'output':'error',text:x||`cat: ${a[0]}: No such file`,timestamp:Date.now()})); setInput(''); return;
+      case 'echo': out = a.join(' '); break;
+      case 'pwd': out = `/workspace/${workspaceClient.getState().projectName||''}`; break;
+      case 'date': out = new Date().toString(); break;
+      case 'node': out = a[0]==='-v' ? 'v22.22.0 (NodePod)' : 'Usage: node -v'; break;
+      case 'npm': out = `npm ${a[0]||''} — simulated in IDE`; tp = 'system'; break;
+      case 'touch': if(a[0]){workspaceClient.createFile(a[0],'');out=`Created ${a[0]}`;tp='system';}else{out='Usage: touch <file>';tp='error';} break;
+      case 'rm': if(a[0]){workspaceClient.deleteFile(a[0]);out=`Deleted ${a[0]}`;tp='system';}else{out='Usage: rm <file>';tp='error';} break;
+      case 'export': out = JSON.stringify(workspaceClient.exportWorkspace(),null,2); break;
+      default: out = `command not found: ${c}\nType "help" for commands.`; tp = 'error';
     }
-
-    if (output) {
-      workspaceClient.addTerminalEntry({ type, text: output, timestamp: Date.now() });
-    }
+    if (out) workspaceClient.addTerminalEntry({ type: tp, text: out, timestamp: Date.now() });
     setInput('');
   }, []);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      execCommand(input);
-      setInput('');
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      if (cmdHistory.length > 0) {
-        const newIdx = historyIdx < 0 ? cmdHistory.length - 1 : Math.max(0, historyIdx - 1);
-        setHistoryIdx(newIdx);
-        setInput(cmdHistory[newIdx]);
-      }
-    } else if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      if (historyIdx >= 0) {
-        const newIdx = historyIdx + 1;
-        if (newIdx >= cmdHistory.length) { setHistoryIdx(-1); setInput(''); }
-        else { setHistoryIdx(newIdx); setInput(cmdHistory[newIdx]); }
-      }
-    } else if (e.key === 'l' && e.ctrlKey) {
-      e.preventDefault();
-      workspaceClient.clearTerminal();
-    }
+  const onKey = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') { exec(input); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); if(history.length){const i=hIdx<0?history.length-1:Math.max(0,hIdx-1);setHIdx(i);setInput(history[i]);} }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); if(hIdx>=0){const i=hIdx+1;if(i>=history.length){setHIdx(-1);setInput('');}else{setHIdx(i);setInput(history[i]);}} }
+    else if (e.key === 'l' && e.ctrlKey) { e.preventDefault(); workspaceClient.clearTerminal(); }
   };
 
-  const getColor = (type: string) => {
-    switch (type) {
-      case 'input': return c.success;
-      case 'error': return c.error;
-      case 'system': return c.info;
-      default: return c.textPrimary;
-    }
+  const color = (t: string) => {
+    if (t === 'input') return 'text-ide-success';
+    if (t === 'error') return 'text-ide-error';
+    if (t === 'system') return 'text-ide-info';
+    return 'text-ide-text';
   };
 
   return (
-    <div className="flex h-full flex-col" style={{ background: c.terminalBg }}
-      onClick={() => inputRef.current?.focus()}
-    >
-      <div ref={termRef} className="flex-1 overflow-y-auto px-3 py-2 font-mono text-[13px] leading-[1.5]">
-        {terminalHistory.map((entry, i) => (
-          <div key={i} className="whitespace-pre-wrap break-all" style={{ color: getColor(entry.type) }}>
-            {entry.text}
-          </div>
+    <div className="flex h-full flex-col bg-ide-terminal" onClick={() => inputRef.current?.focus()}>
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-2 font-mono text-[13px] leading-relaxed">
+        {terminalHistory.map((e, i) => (
+          <div key={i} className={`whitespace-pre-wrap break-all ${color(e.type)}`}>{e.text}</div>
         ))}
       </div>
-      <div className="flex flex-shrink-0 items-center border-t px-3" style={{ borderColor: c.border }}>
-        <span className="mr-2 font-mono text-[13px]" style={{ color: c.success }}>$</span>
+      <div className="flex shrink-0 items-center border-t border-ide-border px-3">
+        <span className="mr-2 font-mono text-[13px] text-ide-success">$</span>
         <input
           ref={inputRef}
-          className="flex-1 bg-transparent py-2 font-mono text-[13px] outline-none"
-          style={{ color: c.textPrimary }}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Type a command..."
-          spellCheck={false}
+          className="flex-1 bg-transparent py-2 font-mono text-[13px] text-ide-text outline-none"
+          value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={onKey}
+          placeholder="Type a command..." spellCheck={false}
         />
       </div>
     </div>
