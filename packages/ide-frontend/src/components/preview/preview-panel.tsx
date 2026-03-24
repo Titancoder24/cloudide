@@ -1,53 +1,59 @@
 'use client';
 
 import { useState } from 'react';
+import { useTheme } from '@/lib/theme';
 
-/**
- * Live preview panel — shows the running app in an iframe.
- * In production, this connects to NodePod's Service Worker bridge
- * for real-time preview with HMR.
- */
 export function PreviewPanel() {
-  const [url, setUrl] = useState('about:blank');
-  const [refreshKey, setRefreshKey] = useState(0);
+  const { c } = useTheme();
+  const [url, setUrl] = useState('');
+  const [key, setKey] = useState(0);
 
   return (
-    <div className="flex h-full flex-col bg-[#1e1e1e]">
-      {/* Preview toolbar */}
-      <div className="flex h-8 items-center gap-2 border-b border-[#3e3e42] px-2 text-[11px]">
+    <div className="flex h-full flex-col" style={{ background: c.bgSecondary }}>
+      {/* Toolbar */}
+      <div className="flex h-9 flex-shrink-0 items-center gap-2 border-b px-2" style={{ borderColor: c.border }}>
         <button
-          onClick={() => setRefreshKey((k) => k + 1)}
-          className="text-[#858585] hover:text-white"
+          onClick={() => setKey((k) => k + 1)}
+          className="flex h-6 w-6 items-center justify-center rounded text-sm"
+          style={{ color: c.textSecondary }}
           title="Refresh"
         >
           ↻
         </button>
         <input
-          className="flex-1 rounded bg-[#3c3c3c] px-2 py-0.5 text-[12px] text-[#cccccc] outline-none"
+          className="flex-1 rounded px-2 py-1 text-xs outline-none"
+          style={{ background: c.bgInput, color: c.textPrimary, border: `1px solid ${c.border}` }}
           value={url}
           onChange={(e) => setUrl(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && setKey((k) => k + 1)}
           placeholder="http://localhost:3000"
+          spellCheck={false}
         />
       </div>
 
-      {/* Preview iframe */}
-      <div className="flex flex-1 items-center justify-center">
-        {url === 'about:blank' ? (
-          <div className="text-center text-[#858585]">
-            <p className="mb-2 text-sm">No preview available</p>
-            <p className="text-xs">
-              Run <code className="text-[#ce9178]">npm run dev</code> to start
-              the dev server, then the preview will appear here.
-            </p>
-          </div>
-        ) : (
+      {/* Content */}
+      <div className="flex flex-1 items-center justify-center overflow-hidden">
+        {url ? (
           <iframe
-            key={refreshKey}
+            key={key}
             src={url}
-            className="h-full w-full border-none bg-white"
+            className="h-full w-full border-none"
+            style={{ background: '#ffffff' }}
             sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
             title="Preview"
           />
+        ) : (
+          <div className="p-6 text-center">
+            <div className="mb-3 text-2xl opacity-20">🌐</div>
+            <p className="mb-2 text-sm" style={{ color: c.textSecondary }}>No preview available</p>
+            <p className="text-xs leading-relaxed" style={{ color: c.textMuted }}>
+              Run <code className="rounded px-1 py-0.5" style={{ background: c.bgTertiary, color: c.warning }}>npm run dev</code> in
+              the terminal, then enter the URL above.
+            </p>
+            <p className="mt-3 text-xs" style={{ color: c.textMuted }}>
+              The preview connects via NodePod&apos;s Service Worker bridge for real-time HMR.
+            </p>
+          </div>
         )}
       </div>
     </div>

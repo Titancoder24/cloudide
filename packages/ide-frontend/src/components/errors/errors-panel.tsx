@@ -1,86 +1,46 @@
 'use client';
 
-import { useState } from 'react';
+import { useWorkspace } from '@/hooks/useWorkspace';
+import { useTheme } from '@/lib/theme';
 
-interface ErrorItem {
-  id: string;
-  type: string;
-  severity: 'error' | 'warning' | 'info';
-  message: string;
-  file?: string;
-  line?: number;
-  status: 'open' | 'resolved';
-}
-
-/**
- * Errors panel — displays collected errors with click-to-jump.
- * Synced with the ErrorCollector on the backend.
- */
 export function ErrorsPanel() {
-  const [errors] = useState<ErrorItem[]>([]);
-  const [filter, setFilter] = useState<'all' | 'open' | 'resolved'>('open');
+  const { errors } = useWorkspace();
+  const { c } = useTheme();
 
-  const filtered = errors.filter(
-    (e) => filter === 'all' || e.status === filter
-  );
+  const openErrors = errors.filter((e) => e.status === 'open');
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex h-8 items-center justify-between border-b border-[#3e3e42] px-3">
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-[#858585]">
-          Problems
-        </span>
-        <div className="flex gap-1 text-[11px]">
-          {(['open', 'resolved', 'all'] as const).map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`rounded px-1.5 py-0.5 ${
-                filter === f
-                  ? 'bg-[#3c3c3c] text-white'
-                  : 'text-[#858585] hover:text-white'
-              }`}
-            >
-              {f}
-            </button>
-          ))}
-        </div>
-      </div>
-
+    <div className="flex h-full flex-col" style={{ background: c.terminalBg }}>
       <div className="flex-1 overflow-y-auto">
-        {filtered.length === 0 ? (
-          <div className="p-3 text-[12px] text-[#858585]">
-            No {filter === 'all' ? '' : filter} problems detected.
+        {openErrors.length === 0 ? (
+          <div className="flex h-full items-center justify-center">
+            <div className="text-center">
+              <div className="mb-2 text-lg" style={{ color: c.success }}>✓</div>
+              <p className="text-xs" style={{ color: c.textSecondary }}>No problems detected</p>
+            </div>
           </div>
         ) : (
-          filtered.map((error) => (
+          openErrors.map((error) => (
             <div
               key={error.id}
-              className="cursor-pointer border-b border-[#3e3e42] px-3 py-1.5 hover:bg-[#2a2d2e]"
+              className="flex cursor-pointer items-start gap-2 border-b px-3 py-2"
+              style={{ borderColor: c.border }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = c.hoverBg)}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
             >
-              <div className="flex items-center gap-1.5 text-[12px]">
-                <span
-                  className={`inline-block h-2 w-2 rounded-full ${
-                    error.severity === 'error'
-                      ? 'bg-red-500'
-                      : error.severity === 'warning'
-                        ? 'bg-yellow-500'
-                        : 'bg-blue-500'
-                  }`}
-                />
-                <span className="font-medium text-[#cccccc]">
-                  {error.type}
-                </span>
+              <span className="mt-0.5 flex-shrink-0 text-xs" style={{
+                color: error.severity === 'error' ? c.error : error.severity === 'warning' ? c.warning : c.info,
+              }}>
+                {error.severity === 'error' ? '●' : error.severity === 'warning' ? '▲' : 'ℹ'}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs" style={{ color: c.textPrimary }}>{error.message}</p>
                 {error.file && (
-                  <span className="ml-auto text-[11px] text-[#858585]">
-                    {error.file}
-                    {error.line ? `:${error.line}` : ''}
-                  </span>
+                  <p className="mt-0.5 text-[11px]" style={{ color: c.textMuted }}>
+                    {error.file}{error.line ? `:${error.line}` : ''} — {error.type}
+                  </p>
                 )}
               </div>
-              <p className="mt-0.5 text-[12px] text-[#cccccc]">
-                {error.message}
-              </p>
             </div>
           ))
         )}
