@@ -1,0 +1,21 @@
+{
+  "name": "llm-ide",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "dev": "npm run dev --workspace=packages/ide-frontend",
+    "dev:gateway": "npm run dev --workspace=packages/gateway",
+    "dev:mcp": "npm run dev --workspace=packages/mcp-server",
+    "lint": "eslint packages/*/src/**/*.{ts,tsx}",
+    "typecheck": "tsc -b"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0",
+    "tsx": "^4.19.0"
+  }
+}
